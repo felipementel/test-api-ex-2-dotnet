@@ -34,6 +34,8 @@ jobs:
       sonarExclusions: ''
       imageName: 'myproject-api'
       openAPIFolder: 'open-api'
+      dockerFileFullPath: 'docker/Dockerfile'
+      dockerBuildContext: '.'
     permissions:
       security-events: write
       contents: write
