@@ -16,7 +16,7 @@
 	    <OpenApiGenerateDocumentsOnBuild>true</OpenApiGenerateDocumentsOnBuild>
 	
 	    <!-- Onde o arquivo será gerado -->
-	    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)\openapi</OpenApiDocumentsDirectory>
+	    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)\open-api</OpenApiDocumentsDirectory>
 	
 	    <!-- Nome do arquivo gerado: openapi.json -->
 	    <OpenApiGenerateDocumentsOptions>--file-name openapi</OpenApiGenerateDocumentsOptions>
