@@ -14,10 +14,10 @@
 	    <!-- Habilita geração do OpenAPI durante o build -->
 	    <OpenApiGenerateDocuments>true</OpenApiGenerateDocuments>
 	    <OpenApiGenerateDocumentsOnBuild>true</OpenApiGenerateDocumentsOnBuild>
-	
+
 	    <!-- Onde o arquivo será gerado -->
-	    <OpenApiDocumentsDirectory>$(MSBuildProjectDirectory)\open-api</OpenApiDocumentsDirectory>
-	
+	    <OpenApiDocumentsDirectory>../../output_build/open-api</OpenApiDocumentsDirectory>
+
 	    <!-- Nome do arquivo gerado: openapi.json -->
 	    <OpenApiGenerateDocumentsOptions>--file-name openapi</OpenApiGenerateDocumentsOptions>
 	</PropertyGroup>
@@ -26,7 +26,7 @@
 		<PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
 		<PackageReference Include="Swashbuckle.AspNetCore" Version="10.1.7" />
 	    <PackageReference Include="Microsoft.AspNetCore.OpenApi" Version="10.0.8" />
-	
+
 	    <PackageReference Include="Microsoft.Extensions.ApiDescription.Server" Version="10.0.8">
 	      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
 	      <PrivateAssets>all</PrivateAssets>

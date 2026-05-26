@@ -1,4 +1,5 @@
 gh-actions-main/
+output_build/
 
 # Build output
 bin/
