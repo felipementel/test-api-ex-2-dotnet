@@ -36,6 +36,7 @@ jobs:
       openAPIFolder: 'open-api'
       dockerFileFullPath: 'docker/Dockerfile'
       dockerBuildContext: '.'
+      registry: 'ghcr.io'
     permissions:
       security-events: write
       contents: write
