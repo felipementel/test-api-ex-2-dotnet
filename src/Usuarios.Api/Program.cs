@@ -18,8 +18,10 @@ var isOpenApiGeneration =
 
 if (!isOpenApiGeneration)
 {
+    
     // Coisas que não devem rodar durante a geração do OpenAPI
     // Ex: conexões externas, validações fortes de secrets, hosted services etc.
+    
 }
 
 app.UseSwagger();
