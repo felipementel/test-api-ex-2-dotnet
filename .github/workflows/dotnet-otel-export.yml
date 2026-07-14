@@ -1,0 +1,90 @@
+# {
+#  "apiVersion": apps/v1.0.0
+#  "kind": "otel-export"
+#  "stack": ".NET"
+# }
+
+name: .NET API — OTel Pipeline Export 📊
+run-name: "📊 OTel Export | ${{ github.event.workflow_run.name }}"
+
+on:
+  workflow_run:
+    workflows:
+      - '.NET API — Build & Deploy'
+      - '.NET API — PR Check'
+      - '.NET API — Weekly Security Scan 🟢🛡️'
+    types:
+      - completed
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
+
+jobs:
+  otel_export:
+    name: Export to Grafana Cloud
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      actions: read
+      contents: read
+
+    steps:
+      - name: 🏷️ Compute service name
+        id: svc
+        shell: bash
+        run: |
+          RAW="${{ github.event.workflow_run.name }}"
+          NAME="${RAW//|/-}"
+          NAME="${NAME// /}"
+          echo "value=dotnet-${NAME}-${{ github.event.workflow_run.id }}" >> $GITHUB_OUTPUT
+
+      - name: 🧭 Compute source environment
+        id: env
+        shell: bash
+        run: |
+          WF="${{ github.event.workflow_run.name }}"
+          BRANCH="${{ github.event.workflow_run.head_branch }}"
+
+          if [[ "$WF" == *"PR Check"* ]]; then
+            ENVIRONMENT="pull-request"
+          elif [[ "$WF" == *"Weekly Security Scan"* ]]; then
+            ENVIRONMENT="security"
+          elif [[ "$BRANCH" == "main" ]]; then
+            ENVIRONMENT="prd"
+          elif [[ "$BRANCH" == "development" ]]; then
+            ENVIRONMENT="dev"
+          elif [[ "$BRANCH" == "staging" ]]; then
+            ENVIRONMENT="hom"
+          else
+            ENVIRONMENT="unknown"
+          fi
+
+          echo "value=$ENVIRONMENT" >> "$GITHUB_OUTPUT"
+
+      - name: 📊 Export pipeline trace to Grafana Cloud
+        uses: inception-health/otel-export-trace-action@v1
+        with:
+          otlpEndpoint: ${{ secrets.OTLP_GRAFANA_ENDPOINT }}
+          otlpHeaders: ${{ secrets.OTLP_GRAFANA_HEADERS }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          otelServiceName: ${{ steps.svc.outputs.value }}
+          runId: ${{ github.event.workflow_run.id }}
+
+      - name: 📊 Export pipeline trace to HoneyComb
+        uses: inception-health/otel-export-trace-action@v1
+        with:
+          otlpEndpoint: grpc://api.honeycomb.io:443/
+          otlpHeaders: x-honeycomb-team=${{ secrets.OTLP_HONEYCOMB_HEADERS }},x-honeycomb-dataset=${{ steps.env.outputs.value }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          otelServiceName: ${{ steps.svc.outputs.value }}
+          runId: ${{ github.event.workflow_run.id }}
+
+      - name: 📊 Export pipeline trace to New Relic
+        uses: inception-health/otel-export-trace-action@v1
+        with:
+          otlpEndpoint: https://otlp.nr-data.net
+          otlpHeaders: ${{ secrets.OTLP_NEWRELIC_HEADERS }}
+          githubToken: ${{ secrets.GITHUB_TOKEN }}
+          otelServiceName: ${{ steps.svc.outputs.value }}
+          runId: ${{ github.event.workflow_run.id }}

@@ -1,0 +1,123 @@
+# {
+#  "apiVersion": apps/v1.0.0
+#  "kind": "ci-cd"
+#  "stack": "dotnet"
+#  "deploy": "aca"
+# }
+
+name: .NET API — Build & Deploy
+run-name: "${{ github.actor }} | ${{ inputs.build_mode }} | ${{ inputs.environment }}"
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'src/**'
+  workflow_dispatch:
+    inputs:
+      build_mode:
+        description: "Qual ação deseja fazer?"
+        required: true
+        default: 'Build'
+        type: choice
+        options:
+          - Build
+          - Build + Tag Validation
+          - Build + Tag Validation + Deploy
+      environment:
+        description: "Selecione o ambiente de implantação"
+        required: true
+        type: environment
+
+jobs:
+  build:
+    name: Build
+    uses: felipementel/gh-actions/.github/workflows/dotnet-sandbox-api-build.yml@main
+    with:
+      build_mode: ${{ github.event_name == 'workflow_dispatch' && inputs.build_mode || 'Build' }}
+      environment: ${{ inputs.environment || 'development' }}
+      dotnet_version: ${{ vars.BUILD_VERSION }}
+      project_base_dir: './src'
+      solution_file_name: 'PortsAndAdapters.slnx'
+      main_project: 'Usuarios.Api'
+      tests_folder: 'tests'
+      report_title: 'My Project API'
+      sonar_exclusions: ''
+      image_name: ${{ github.event.repository.name }}
+      openapi_folder: 'open-api'
+      dockerfile_folder: './docker'
+      docker_build_context: '.'
+      registry: ${{ vars.CONTAINER_REGISTRY }}
+    permissions:
+      security-events: write
+      contents: write
+      id-token: write
+      packages: write
+    secrets:
+      SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+      GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      REGISTRY_PAT: ${{ secrets.REGISTRY_PAT }}
+
+  deploy:
+    name: Deploy to ACA
+    if: >-
+      github.event_name == 'workflow_dispatch' &&
+      inputs.build_mode == 'Build + Tag Validation + Deploy' &&
+      needs.build.outputs.image_exists == 'false'
+    needs: [build]
+    uses: felipementel/gh-actions/.github/workflows/dotnet-sandbox-api-deploy-aca.yml@main
+    with:
+      environment: ${{ inputs.environment || 'development' }}
+      tag_version: ${{ needs.build.outputs.tag_version }}
+      image_name: ${{ github.event.repository.name }}
+      registry: ${{ vars.CONTAINER_REGISTRY }}
+      # registryUsername: ''  # Deixe vazio para usar github.actor (padrão ghcr.io)
+      # azure_resource_group: ${{ vars.AZURE_RESOURCE_GROUP_NAME }}
+      acae_base_name: ${{ vars.AZURE_ACAE_BASE }}
+      health_check_path: '/health/live'
+      deploy_poll_max_attempts: '20'
+      deploy_poll_interval_seconds: '15'
+    permissions:
+      id-token: write
+      contents: read
+      packages: read
+    secrets:
+      AZURE_CLIENT_ID: ${{ secrets.AZURE_CLIENT_ID }}
+      AZURE_TENANT_ID: ${{ secrets.AZURE_TENANT_ID }}
+      AZURE_SUBSCRIPTION_ID: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
+
+  # otel_export:
+  #   name: OTel Export 📊
+  #   if: always()
+  #   needs: [build]
+  #   runs-on: ubuntu-latest
+  #   timeout-minutes: 5
+  #   env:
+  #     FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: 'true'
+  #     ACTIONS_ALLOW_USE_UNSECURE_NODE_VERSION: 'true'
+  #   permissions:
+  #     actions: read
+  #     contents: read
+
+  #   steps:
+  #     - name: 📊 Export to Grafana Cloud
+  #       uses: inception-health/otel-export-trace-action@v1
+  #       with:
+  #         otlpEndpoint: ${{ secrets.OTLP_GRAFANA_ENDPOINT }}
+  #         otlpHeaders: ${{ secrets.OTLP_GRAFANA_HEADERS }}
+  #         githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+  #     - name: 📊 Export to HoneyComb
+  #       uses: inception-health/otel-export-trace-action@v1
+  #       with:
+  #         otlpEndpoint: grpc://api.honeycomb.io:443/
+  #         otlpHeaders: ${{ secrets.OTLP_HONEYCOMB_HEADERS }}
+  #         githubToken: ${{ secrets.GITHUB_TOKEN }}
+
+  #     - name: 📊 Export to New Relic
+  #       uses: inception-health/otel-export-trace-action@v1
+  #       with:
+  #         otlpEndpoint: https://otlp.nr-data.net
+  #         otlpHeaders: ${{ secrets.OTLP_NEWRELIC_HEADERS }}
+  #         githubToken: ${{ secrets.GITHUB_TOKEN }}

@@ -1,0 +1,51 @@
+# {
+#  "apiVersion": apps/v1.0.1
+#  "kind": "pr-check"
+#  "stack: "dotnet"
+# }
+
+
+name: .NET API — PR Check
+run-name: "${{ github.actor }} | PR Check | ${{ github.ref_name }}"
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'src/**'
+      - 'tests/**'
+      - 'docker/**'
+      - '.github/workflows/**'
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: "Selecione o ambiente de implantação"
+        required: true
+        type: environment
+
+jobs:
+  pr_check:
+    name: PR Check
+    uses: felipementel/gh-actions/.github/workflows/dotnet-pr-check.yml@main
+    with:
+      environment: ${{ github.event_name == 'workflow_dispatch' && inputs.environment || 'development' }}
+      tests_folder: 'tests'
+      dotnet_version: ${{ vars.BUILD_VERSION }}
+      project_base_dir: './src'
+      solution_file_name: 'PortsAndAdapters.slnx'
+      main_project: 'Usuarios.Api'
+      report_title: 'My Project API - PR'
+      sonar_exclusions: ''
+      image_name: ${{ github.event.repository.name }}
+      openapi_folder: 'open-api'
+      dockerfile_folder: './docker'
+      docker_build_context: '.'
+    permissions:
+      security-events: write
+      contents: write
+      id-token: write
+      packages: write
+    secrets:
+      SONAR_PROJECT_KEY: ${{ secrets.SONAR_PROJECT_KEY }}
+      GITLEAKS_LICENSE: ${{ secrets.GITLEAKS_LICENSE }}
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
